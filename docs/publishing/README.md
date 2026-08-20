@@ -24,7 +24,8 @@ review remain required regardless of what this brief says.
 
 ## Supported formats
 
-The brief models candidates for four supported blog formats:
+The brief uses a `candidates` array, so it can propose multiple posts in any
+of four supported formats:
 
 - **Architectural decision** — a single consequential decision, its
   alternatives, and its consequences.
@@ -43,6 +44,12 @@ The brief models candidates for four supported blog formats:
 - [`../publishing/blog-brief.schema.json`](blog-brief.schema.json) — JSON
   Schema used by `npm test` to catch malformed briefs before they are ever
   read by anything external.
+
+Each candidate has a stable `id`, `format`, working title, audience, takeaway,
+local source/operations provenance, ADR objects, and evidence objects. ADRs
+explicitly identify reconstructed decisions rather than presenting them as
+contemporaneous records. Evidence uses only `measured`, `modeled`, `assumed`,
+and `gap`.
 
 ## Review checklist before marking a candidate ready
 

@@ -1,0 +1,9 @@
+/docs/*.schema.json @colincmac
+/docs/solution-manifest.yaml @colincmac
+/docs/publishing/ @colincmac
+/docs/evidence/ @colincmac
+/.github/agents/ @colincmac
+/.github/instructions/ @colincmac
+/.github/workflows/ @colincmac
+/scripts/ @colincmac
+/test/ @colincmac

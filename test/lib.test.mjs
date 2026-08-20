@@ -7,126 +7,71 @@ import {
   readJsonFile,
   validateManifestDocument,
   validateBlogBriefDocument,
+  validateContractDocuments,
   checkLocalPathShape,
 } from "../scripts/lib.mjs";
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 const repoRoot = path.resolve(__dirname, "..");
-const fixturesDir = path.join(__dirname, "fixtures");
+const fixturePath = path.join(__dirname, "fixtures", "contact-center.yaml");
+const { data: fixture } = readYamlFile(fixturePath);
+const { data: manifestSchema } = readJsonFile(path.join(repoRoot, "docs", "solution-manifest.schema.json"));
+const { data: briefSchema } = readJsonFile(path.join(repoRoot, "docs", "publishing", "blog-brief.schema.json"));
 
-const { data: manifestSchema } = readJsonFile(
-  path.join(repoRoot, "docs", "solution-manifest.schema.json")
-);
-const { data: briefSchema } = readJsonFile(
-  path.join(repoRoot, "docs", "publishing", "blog-brief.schema.json")
-);
-
-function loadManifestFixture(name) {
-  const { data, error } = readYamlFile(
-    path.join(fixturesDir, "manifest", name)
-  );
-  assert.equal(error, null, `fixture ${name} should parse as YAML`);
-  return data;
+function copy() {
+  return structuredClone(fixture);
 }
 
-function loadBriefFixture(name) {
-  const { data, error } = readYamlFile(
-    path.join(fixturesDir, "blog-brief", name)
-  );
-  assert.equal(error, null, `fixture ${name} should parse as YAML`);
-  return data;
-}
-
-test("checkLocalPathShape accepts a simple repository-relative path", () => {
-  assert.equal(checkLocalPathShape("docs/README.md", "label"), null);
+test("rich multi-candidate contact-center fixture validates", () => {
+  const { manifest, brief } = copy();
+  assert.deepEqual(validateManifestDocument(manifest, manifestSchema, repoRoot), []);
+  assert.deepEqual(validateBlogBriefDocument(brief, briefSchema, repoRoot), []);
+  assert.deepEqual(validateContractDocuments(manifest, brief), []);
 });
 
-test("checkLocalPathShape accepts a path with a fragment", () => {
-  assert.equal(
-    checkLocalPathShape("docs/README.md#section", "label"),
-    null
-  );
+test("entry point fragments use GitHub heading slugs", () => {
+  const { manifest } = copy();
+  manifest.entryPoints.deployment = "docs/README.md#missing-heading";
+  assert.ok(validateManifestDocument(manifest, manifestSchema, repoRoot).some((error) => error.includes("Markdown fragment")));
 });
 
-test("checkLocalPathShape rejects an absolute path", () => {
-  const err = checkLocalPathShape("/etc/passwd", "label");
-  assert.match(err, /absolute/);
+test("cross-document solution ID and repository mismatches fail", () => {
+  const { manifest, brief } = copy();
+  brief.solution.id = "other";
+  brief.solution.repository = "other/repository";
+  const errors = validateContractDocuments(manifest, brief);
+  assert.equal(errors.length, 2);
 });
 
-test("checkLocalPathShape rejects parent-directory traversal", () => {
-  const err = checkLocalPathShape("../secrets.md", "label");
-  assert.match(err, /traversal/);
+test("invalid evidence classes, ADR statuses, and unmarked reconstructed ADRs fail", () => {
+  const { brief } = copy();
+  brief.candidates[0].evidence[0].class = "assumption";
+  brief.candidates[0].canonicalAdrs[0].statusAsReviewed = "current";
+  brief.candidates[0].canonicalAdrs[0].kind = "reconstructed";
+  delete brief.candidates[0].canonicalAdrs[0].note;
+  const errors = validateBlogBriefDocument(brief, briefSchema, repoRoot);
+  assert.ok(errors.length >= 3);
 });
 
-test("checkLocalPathShape rejects a URL", () => {
-  const err = checkLocalPathShape("https://example.com/x.md", "label");
-  assert.match(err, /URL/);
+test("unsafe candidate paths and exclusion globs fail", () => {
+  const { manifest, brief } = copy();
+  manifest.synthesisExclusions[0].glob = "../**";
+  brief.candidates[0].sourceArtifacts[0].path = "../private.md";
+  const errors = [
+    ...validateManifestDocument(manifest, manifestSchema, repoRoot),
+    ...validateBlogBriefDocument(brief, briefSchema, repoRoot),
+  ];
+  assert.ok(errors.some((error) => error.includes("traversal")));
 });
 
-test("checkLocalPathShape rejects an empty value", () => {
-  const err = checkLocalPathShape("", "label");
-  assert.match(err, /non-empty/);
+test("duplicate candidate IDs fail", () => {
+  const { brief } = copy();
+  brief.candidates[1].id = brief.candidates[0].id;
+  assert.ok(validateBlogBriefDocument(brief, briefSchema, repoRoot).some((error) => error.includes("duplicate candidate ID")));
 });
 
-test("valid manifest fixture passes schema and entry point checks", () => {
-  const data = loadManifestFixture("valid.yaml");
-  const errors = validateManifestDocument(data, manifestSchema, repoRoot);
-  assert.deepEqual(errors, []);
-});
-
-test("manifest with bad schemaVersion and maturity fails schema validation", () => {
-  const data = loadManifestFixture(
-    "invalid-schema-version-and-maturity.yaml"
-  );
-  const errors = validateManifestDocument(data, manifestSchema, repoRoot);
-  assert.ok(errors.length > 0);
-  assert.ok(errors.some((e) => e.includes("schemaVersion")));
-});
-
-test("manifest missing a required entry point fails validation", () => {
-  const data = loadManifestFixture("missing-required-entry-point.yaml");
-  const errors = validateManifestDocument(data, manifestSchema, repoRoot);
-  assert.ok(errors.length > 0);
-  assert.ok(
-    errors.some(
-      (e) => e.includes("adrIndex") || e.includes("required property")
-    )
-  );
-});
-
-test("manifest with absolute path, traversal, and URL entry points fails validation", () => {
-  const data = loadManifestFixture("bad-path-values.yaml");
-  const errors = validateManifestDocument(data, manifestSchema, repoRoot);
-  assert.ok(errors.some((e) => e.includes("overview") && e.includes("absolute")));
-  assert.ok(errors.some((e) => e.includes("adrIndex") && e.includes("traversal")));
-  assert.ok(
-    errors.some((e) => e.includes("publicationBrief") && e.includes("URL"))
-  );
-});
-
-test("manifest entry point pointing at a nonexistent file fails validation", () => {
-  const data = loadManifestFixture("valid.yaml");
-  data.entryPoints.runbooks = "docs/does-not-exist.md";
-  const errors = validateManifestDocument(data, manifestSchema, repoRoot);
-  assert.ok(errors.some((e) => e.includes("does not exist")));
-});
-
-test("valid blog-brief fixture passes schema and path checks", () => {
-  const data = loadBriefFixture("valid.yaml");
-  const errors = validateBlogBriefDocument(data, briefSchema, repoRoot);
-  assert.deepEqual(errors, []);
-});
-
-test("blog-brief with an invalid reviewStatus fails schema validation", () => {
-  const data = loadBriefFixture("invalid-review-status.yaml");
-  const errors = validateBlogBriefDocument(data, briefSchema, repoRoot);
-  assert.ok(errors.length > 0);
-});
-
-test("blog-brief with absolute path, traversal, and URL source artifacts fails validation", () => {
-  const data = loadBriefFixture("bad-path-values.yaml");
-  const errors = validateBlogBriefDocument(data, briefSchema, repoRoot);
-  assert.ok(errors.some((e) => e.includes("absolute")));
-  assert.ok(errors.some((e) => e.includes("traversal")));
-  assert.ok(errors.some((e) => e.includes("URL")));
+test("local paths reject absolute paths, traversal, and URLs", () => {
+  for (const value of ["/etc/passwd", "C:\\private.md", "../private.md", "https://example.test/a"]) {
+    assert.notEqual(checkLocalPathShape(value, "path"), null);
+  }
 });

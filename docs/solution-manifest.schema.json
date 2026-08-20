@@ -2,64 +2,38 @@
   "$schema": "http://json-schema.org/draft-07/schema#",
   "$id": "https://github.com/colincmac/solution-artifact-template/docs/solution-manifest.schema.json",
   "title": "Solution Manifest",
-  "description": "Entry-point contract for a solution repository created from the solution-artifact-template.",
   "type": "object",
-  "additionalProperties": true,
-  "required": [
-    "schemaVersion",
-    "solution",
-    "entryPoints"
-  ],
+  "additionalProperties": false,
+  "required": ["schemaVersion", "templateVersion", "repository", "solution", "entryPoints", "synthesisExclusions", "publicationReview"],
   "properties": {
-    "schemaVersion": {
-      "type": "string",
-      "description": "Version of this schema the document conforms to.",
-      "enum": ["1.0.0"]
-    },
-    "templateVersion": {
-      "type": "string",
-      "description": "Version of the template this repository was created from.",
-      "pattern": "^[0-9]+\\.[0-9]+\\.[0-9]+$"
+    "schemaVersion": { "type": "string", "const": "1.0.0" },
+    "templateVersion": { "type": "string", "pattern": "^[0-9]+\\.[0-9]+\\.[0-9]+$" },
+    "repository": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["owner", "name", "visibility", "defaultRef"],
+      "properties": {
+        "owner": { "type": "string", "minLength": 1 },
+        "name": { "type": "string", "minLength": 1 },
+        "visibility": { "enum": ["public", "private"] },
+        "defaultRef": { "type": "string", "minLength": 1 }
+      }
     },
     "solution": {
       "type": "object",
-      "additionalProperties": true,
-      "required": ["id", "name", "maturity"],
+      "additionalProperties": false,
+      "required": ["id", "name", "summary", "maturity"],
       "properties": {
-        "id": {
-          "type": "string",
-          "minLength": 1,
-          "description": "Short, stable, kebab-case identifier for this solution."
-        },
-        "name": {
-          "type": "string",
-          "minLength": 1
-        },
-        "summary": {
-          "type": "string"
-        },
-        "maturity": {
-          "type": "string",
-          "enum": ["prototype", "pilot", "production", "deprecated"]
-        }
+        "id": { "type": "string", "minLength": 1 },
+        "name": { "type": "string", "minLength": 1 },
+        "summary": { "type": "string", "minLength": 1 },
+        "maturity": { "enum": ["concept", "prototype", "showcase", "pilot", "production", "maintenance", "deprecated"] }
       }
     },
     "entryPoints": {
       "type": "object",
-      "description": "Repository-relative entry points. Required keys must be non-null local paths; optional keys may be null.",
-      "additionalProperties": {
-        "type": ["string", "null"]
-      },
-      "required": [
-        "overview",
-        "architectureIndex",
-        "adrIndex",
-        "deployment",
-        "runbooks",
-        "observability",
-        "evidence",
-        "publicationBrief"
-      ],
+      "additionalProperties": false,
+      "required": ["overview", "architectureIndex", "adrIndex", "deployment", "runbooks", "observability", "evidence", "publicationBrief"],
       "properties": {
         "overview": { "type": "string", "minLength": 1 },
         "architectureIndex": { "type": "string", "minLength": 1 },
@@ -75,15 +49,28 @@
     },
     "synthesisExclusions": {
       "type": "array",
-      "items": { "type": "string" }
+      "description": "Editorial guidance only, not access controls.",
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": ["reason"],
+        "oneOf": [{ "required": ["path"] }, { "required": ["glob"] }],
+        "properties": {
+          "path": { "type": "string", "minLength": 1 },
+          "glob": { "type": "string", "minLength": 1 },
+          "reason": { "type": "string", "minLength": 1 }
+        }
+      }
     },
     "publicationReview": {
       "type": "object",
-      "additionalProperties": true,
+      "additionalProperties": false,
+      "required": ["requiresHumanReview", "notes"],
       "properties": {
         "requiresHumanReview": { "type": "boolean" },
-        "notes": { "type": "string" }
+        "notes": { "type": "string", "minLength": 1 }
       }
-    }
+    },
+    "extensions": { "type": "object", "description": "Repository-specific metadata outside the canonical contract." }
   }
 }

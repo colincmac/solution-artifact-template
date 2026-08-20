@@ -8,7 +8,7 @@
 
 - **Date:** REPLACE_ME (YYYY-MM-DD)
 - **Related ADRs:** REPLACE_ME (see [`../adr/`](../../adr/README.md))
-- **Kind:** REPLACE_ME — one of `measured`, `modeled`, or `assumption`
+- **Class:** REPLACE_ME — one of `measured`, `modeled`, `assumed`, or `gap`
   (see [Classification](#classification))
 
 ## Classification

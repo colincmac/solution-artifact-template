@@ -8,7 +8,8 @@ authoring flow.
 
 - Run the validator: `npm ci && npm test`. It checks
   `docs/solution-manifest.yaml` and `docs/publishing/blog-brief.yaml`
-  against their schemas and confirms required entry points exist.
+  against their schemas, verifies local provenance and Markdown fragments,
+  and confirms the manifest and brief agree.
 - Keep documentation changes close to the code they describe.
 
 ## When do you need an ADR?
@@ -29,13 +30,15 @@ do not need one.
   [runbook](docs/runbooks/README.md).
 - **Evidence:** if the change is justified by or produces new measured
   results, add or update an [evidence record](docs/evidence/README.md).
-  Never let a PR imply a result that was not actually measured or modeled.
+  Use only `measured`, `modeled`, `assumed`, or `gap` evidence classes; never
+  let a PR imply a result that was not actually measured or modeled.
 
 ## Publication brief
 
 Only touch [`docs/publishing/blog-brief.yaml`](docs/publishing/README.md)
 when you have real, reviewed source material to propose. Leave placeholder
-candidates as `not_proposed` otherwise. Any change to this file needs a
+candidates as `not_proposed` otherwise; candidates are an array and may share
+a format. Any change to this file needs a
 human reviewer who understands the solution, in addition to normal code
 review — see the PR template checklist.
 

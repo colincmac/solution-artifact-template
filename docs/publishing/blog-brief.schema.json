@@ -2,81 +2,101 @@
   "$schema": "http://json-schema.org/draft-07/schema#",
   "$id": "https://github.com/colincmac/solution-artifact-template/docs/publishing/blog-brief.schema.json",
   "title": "Publication Brief",
-  "description": "Conservative synthesis metadata curated for an external technical blog. Read at authoring time only; never a build/runtime dependency of the published site.",
   "type": "object",
-  "additionalProperties": true,
-  "required": ["schemaVersion", "solution", "candidates"],
+  "additionalProperties": false,
+  "required": ["schemaVersion", "templateVersion", "solution", "review", "candidates", "globalExclusions"],
   "definitions": {
-    "reviewStatus": {
-      "type": "string",
-      "enum": ["not_proposed", "draft", "ready_for_review", "reviewed"]
+    "reviewStatus": { "enum": ["not_proposed", "draft", "ready_for_review", "reviewed"] },
+    "localReference": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["path"],
+      "properties": { "path": { "type": "string", "minLength": 1 }, "note": { "type": "string", "minLength": 1 } }
     },
-    "pathList": {
-      "type": "array",
-      "items": { "type": "string", "minLength": 1 }
+    "adr": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["id", "path", "statusAsReviewed", "kind"],
+      "properties": {
+        "id": { "type": "string", "minLength": 1 },
+        "path": { "type": "string", "minLength": 1 },
+        "statusAsReviewed": { "enum": ["proposed", "accepted", "superseded", "deprecated"] },
+        "kind": { "enum": ["current-record", "reconstructed"] },
+        "note": { "type": "string", "minLength": 1 }
+      },
+      "allOf": [{ "if": { "properties": { "kind": { "const": "reconstructed" } } }, "then": { "required": ["note"] } }]
+    },
+    "evidence": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["class", "claim"],
+      "properties": {
+        "class": { "enum": ["measured", "modeled", "assumed", "gap"] },
+        "claim": { "type": "string", "minLength": 1 },
+        "path": { "type": "string", "minLength": 1 },
+        "note": { "type": "string", "minLength": 1 }
+      }
     },
     "candidate": {
       "type": "object",
-      "additionalProperties": true,
-      "required": ["reviewStatus"],
+      "additionalProperties": false,
+      "required": ["id", "format", "reviewStatus", "workingTitle", "audience", "takeaway", "sourceArtifacts", "canonicalAdrs", "operations", "evidence", "evidenceGaps", "detailsToGeneralize", "excludedMaterial"],
       "properties": {
+        "id": { "type": "string", "minLength": 1 },
+        "format": { "enum": ["architectural-decision", "large-scale-lessons", "reference-architecture", "field-note"] },
         "reviewStatus": { "$ref": "#/definitions/reviewStatus" },
-        "audience": { "type": "string" },
-        "takeaway": { "type": "string" },
-        "sourceArtifacts": { "$ref": "#/definitions/pathList" },
-        "canonicalAdrs": {
-          "type": "array",
-          "items": { "type": "string" }
+        "workingTitle": { "type": "string", "minLength": 1 },
+        "audience": { "type": "string", "minLength": 1 },
+        "takeaway": { "type": "string", "minLength": 1 },
+        "sourceArtifacts": { "type": "array", "items": { "$ref": "#/definitions/localReference" } },
+        "canonicalAdrs": { "type": "array", "items": { "$ref": "#/definitions/adr" } },
+        "operations": { "type": "array", "items": { "$ref": "#/definitions/localReference" } },
+        "evidence": { "type": "array", "items": { "$ref": "#/definitions/evidence" } },
+        "evidenceGaps": { "type": "array", "items": { "type": "string", "minLength": 1 } },
+        "detailsToGeneralize": { "type": "array", "items": { "type": "string", "minLength": 1 } },
+        "excludedMaterial": { "type": "array", "items": { "type": "string", "minLength": 1 } },
+        "reviewedAt": { "type": "string", "pattern": "^[0-9]{4}-[0-9]{2}-[0-9]{2}T" },
+        "reviewer": { "type": "string", "minLength": 1 }
+      },
+      "allOf": [
+        {
+          "if": { "properties": { "reviewStatus": { "enum": ["draft", "ready_for_review", "reviewed"] } } },
+          "then": { "properties": { "audience": { "pattern": "^(?!REPLACE_ME).+" }, "takeaway": { "pattern": "^(?!REPLACE_ME).+" }, "sourceArtifacts": { "minItems": 1 } } }
         },
-        "operations": { "$ref": "#/definitions/pathList" },
-        "evidence": { "$ref": "#/definitions/pathList" },
-        "evidenceGaps": {
-          "type": "array",
-          "items": { "type": "string" }
-        },
-        "detailsToGeneralize": {
-          "type": "array",
-          "items": { "type": "string" }
-        },
-        "excludedMaterial": {
-          "type": "array",
-          "items": { "type": "string" }
+        {
+          "if": { "properties": { "reviewStatus": { "enum": ["ready_for_review", "reviewed"] } } },
+          "then": { "required": ["reviewedAt", "reviewer"] }
         }
-      }
+      ]
     }
   },
   "properties": {
-    "schemaVersion": {
-      "type": "string",
-      "enum": ["1.0.0"]
-    },
+    "schemaVersion": { "type": "string", "const": "1.0.0" },
+    "templateVersion": { "type": "string", "pattern": "^[0-9]+\\.[0-9]+\\.[0-9]+$" },
     "solution": {
       "type": "object",
-      "additionalProperties": true,
-      "required": ["id"],
+      "additionalProperties": false,
+      "required": ["id", "repository", "ref", "visibility"],
       "properties": {
-        "id": { "type": "string", "minLength": 1 }
+        "id": { "type": "string", "minLength": 1 },
+        "repository": { "type": "string", "pattern": "^[^/\\s]+/[^/\\s]+$" },
+        "ref": { "type": "string", "minLength": 1 },
+        "visibility": { "enum": ["public", "private"] }
       }
     },
-    "candidates": {
+    "review": {
       "type": "object",
       "additionalProperties": false,
-      "required": [
-        "architecturalDecision",
-        "largeScaleLessons",
-        "referenceArchitecture",
-        "fieldNote"
-      ],
+      "required": ["status"],
       "properties": {
-        "architecturalDecision": { "$ref": "#/definitions/candidate" },
-        "largeScaleLessons": { "$ref": "#/definitions/candidate" },
-        "referenceArchitecture": { "$ref": "#/definitions/candidate" },
-        "fieldNote": { "$ref": "#/definitions/candidate" }
-      }
+        "status": { "$ref": "#/definitions/reviewStatus" },
+        "reviewedAt": { "type": "string", "pattern": "^[0-9]{4}-[0-9]{2}-[0-9]{2}T" },
+        "reviewer": { "type": "string", "minLength": 1 }
+      },
+      "allOf": [{ "if": { "properties": { "status": { "const": "reviewed" } } }, "then": { "required": ["reviewedAt", "reviewer"] } }]
     },
-    "globalExclusions": {
-      "type": "array",
-      "items": { "type": "string" }
-    }
+    "candidates": { "type": "array", "items": { "$ref": "#/definitions/candidate" } },
+    "globalExclusions": { "type": "array", "items": { "type": "string", "minLength": 1 } },
+    "extensions": { "type": "object", "description": "Repository-specific metadata outside the canonical contract." }
   }
 }
