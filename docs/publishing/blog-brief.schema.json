@@ -1,0 +1,82 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "$id": "https://github.com/colincmac/solution-artifact-template/docs/publishing/blog-brief.schema.json",
+  "title": "Publication Brief",
+  "description": "Conservative synthesis metadata curated for an external technical blog. Read at authoring time only; never a build/runtime dependency of the published site.",
+  "type": "object",
+  "additionalProperties": true,
+  "required": ["schemaVersion", "solution", "candidates"],
+  "definitions": {
+    "reviewStatus": {
+      "type": "string",
+      "enum": ["not_proposed", "draft", "ready_for_review", "reviewed"]
+    },
+    "pathList": {
+      "type": "array",
+      "items": { "type": "string", "minLength": 1 }
+    },
+    "candidate": {
+      "type": "object",
+      "additionalProperties": true,
+      "required": ["reviewStatus"],
+      "properties": {
+        "reviewStatus": { "$ref": "#/definitions/reviewStatus" },
+        "audience": { "type": "string" },
+        "takeaway": { "type": "string" },
+        "sourceArtifacts": { "$ref": "#/definitions/pathList" },
+        "canonicalAdrs": {
+          "type": "array",
+          "items": { "type": "string" }
+        },
+        "operations": { "$ref": "#/definitions/pathList" },
+        "evidence": { "$ref": "#/definitions/pathList" },
+        "evidenceGaps": {
+          "type": "array",
+          "items": { "type": "string" }
+        },
+        "detailsToGeneralize": {
+          "type": "array",
+          "items": { "type": "string" }
+        },
+        "excludedMaterial": {
+          "type": "array",
+          "items": { "type": "string" }
+        }
+      }
+    }
+  },
+  "properties": {
+    "schemaVersion": {
+      "type": "string",
+      "enum": ["1.0.0"]
+    },
+    "solution": {
+      "type": "object",
+      "additionalProperties": true,
+      "required": ["id"],
+      "properties": {
+        "id": { "type": "string", "minLength": 1 }
+      }
+    },
+    "candidates": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "architecturalDecision",
+        "largeScaleLessons",
+        "referenceArchitecture",
+        "fieldNote"
+      ],
+      "properties": {
+        "architecturalDecision": { "$ref": "#/definitions/candidate" },
+        "largeScaleLessons": { "$ref": "#/definitions/candidate" },
+        "referenceArchitecture": { "$ref": "#/definitions/candidate" },
+        "fieldNote": { "$ref": "#/definitions/candidate" }
+      }
+    },
+    "globalExclusions": {
+      "type": "array",
+      "items": { "type": "string" }
+    }
+  }
+}

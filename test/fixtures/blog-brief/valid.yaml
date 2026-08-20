@@ -1,0 +1,39 @@
+schemaVersion: "1.0.0"
+solution:
+  id: "example-solution"
+candidates:
+  architecturalDecision:
+    reviewStatus: not_proposed
+    sourceArtifacts: []
+    canonicalAdrs: []
+    evidence: []
+    evidenceGaps: []
+    detailsToGeneralize: []
+    excludedMaterial: []
+  largeScaleLessons:
+    reviewStatus: not_proposed
+    sourceArtifacts: []
+    canonicalAdrs: []
+    operations: []
+    evidence: []
+    evidenceGaps: []
+    detailsToGeneralize: []
+    excludedMaterial: []
+  referenceArchitecture:
+    reviewStatus: not_proposed
+    sourceArtifacts: []
+    canonicalAdrs: []
+    evidence: []
+    evidenceGaps: []
+    detailsToGeneralize: []
+    excludedMaterial: []
+  fieldNote:
+    reviewStatus: not_proposed
+    sourceArtifacts: []
+    canonicalAdrs: []
+    evidence: []
+    evidenceGaps: []
+    detailsToGeneralize: []
+    excludedMaterial: []
+globalExclusions:
+  - "Credentials and secrets"

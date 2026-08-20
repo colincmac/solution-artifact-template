@@ -1,0 +1,12 @@
+schemaVersion: "1.0.0"
+solution:
+  id: "example-solution"
+candidates:
+  architecturalDecision:
+    reviewStatus: "not_a_real_status"
+  largeScaleLessons:
+    reviewStatus: not_proposed
+  referenceArchitecture:
+    reviewStatus: not_proposed
+  fieldNote:
+    reviewStatus: not_proposed

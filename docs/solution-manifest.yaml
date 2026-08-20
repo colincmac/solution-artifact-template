@@ -1,0 +1,93 @@
+# Solution manifest
+#
+# Entry-point contract for this solution repository. Tooling (including AI
+# coding agents and the validator in `scripts/`) reads this file to find the
+# canonical documents for architecture, decisions, operations, and evidence
+# without needing an exhaustive inventory of every file in the repository.
+#
+# This file does not need to list every document. It only needs to point at
+# the index/entry point for each area; each index links deeper into its own
+# folder.
+#
+# Replace the placeholder values below when you create a repository from
+# this template. Validate with `npm test` after editing.
+
+# Version of the solution-manifest schema this file conforms to. Must match
+# a version published in docs/solution-manifest.schema.json. Bump this only
+# when you intentionally adopt a newer template contract (see
+# docs/MIGRATION.md).
+schemaVersion: "1.0.0"
+
+# Version of the template this repository was created from. Informational;
+# used to detect drift against the upstream template's VERSION file.
+templateVersion: "1.0.0"
+
+solution:
+  # Short, stable, kebab-case identifier for this solution. Used by tooling
+  # as a machine key; do not reuse across unrelated solutions.
+  id: "REPLACE_ME-solution-id"
+  # Human-readable name shown in generated indexes and the publication brief.
+  name: "REPLACE_ME Solution Name"
+  # One or two sentences describing what this solution is and is not.
+  summary: "REPLACE_ME: what this solution does, in plain language."
+  # Lifecycle stage of the solution itself (not the documentation).
+  # One of: prototype, pilot, production, deprecated.
+  maturity: prototype
+
+# Repository-relative entry points. Each path must exist, must be
+# repository-relative (no leading "/", no "..", no URLs), and points at the
+# canonical index/document for that concern. A trailing "#fragment" is
+# allowed for linking to a section, and is ignored for existence checks.
+# Optional entry points may be omitted entirely (set to null) if a solution
+# genuinely has none (for example, an infrastructure-only solution with no
+# application entry point).
+entryPoints:
+  # Required: the solution's own top-level overview, distinct from this
+  # template's README.md.
+  overview: docs/README.md
+  # Required: index into architecture views/decisions about system shape.
+  architectureIndex: docs/architecture/README.md
+  # Required: index into Architecture Decision Records.
+  adrIndex: docs/adr/README.md
+  # Required: how to deploy/provision this solution (or a statement that it
+  # is not deployable, e.g. a library or investigation-only repo).
+  deployment: docs/architecture/README.md#deployment-and-provisioning
+  # Required: index into operational runbooks.
+  runbooks: docs/runbooks/README.md
+  # Required: where observability (dashboards, alerts, logs, traces) is
+  # described or linked from.
+  observability: docs/architecture/README.md#observability
+  # Required: index into evidence records (measured results, load tests,
+  # validated failure drills, etc.).
+  evidence: docs/evidence/README.md
+  # Required: the curated publication brief for the external blog.
+  publicationBrief: docs/publishing/blog-brief.yaml
+  # Optional: entry point into implementation/source code, if applicable to
+  # this solution (omit for documentation-only or investigation-only repos).
+  implementation: null
+  # Optional: entry point into automation (CI/CD, scripts, IaC), if
+  # applicable to this solution.
+  automation: null
+
+# Guidance for what should never be copied verbatim into blog synthesis,
+# independent of what any individual publication brief says.
+#
+# IMPORTANT: this list is a curation aid for humans and authoring tooling.
+# It is NOT a security or access-control boundary. Repository permissions,
+# secret scanning, sanitization, and human review of the publication brief
+# remain required regardless of what is listed here.
+synthesisExclusions:
+  - "Credentials, tokens, connection strings, and subscription/tenant identifiers"
+  - "Customer names, logos, and other confidential business information"
+  - "Private URLs, internal hostnames, and internal ticket/issue references"
+  - "Unvalidated performance or cost claims not backed by an evidence record"
+
+publicationReview:
+  # Human review is always required before any content derived from this
+  # repository reaches the external blog's authoring tooling.
+  requiresHumanReview: true
+  notes: >-
+    A publication brief is a proposal, not a publish action. A person with
+    context on this solution must review docs/publishing/blog-brief.yaml for
+    accuracy, sanitization, and appropriateness before the blog's authoring
+    tooling reads it.
