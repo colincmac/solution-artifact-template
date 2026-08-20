@@ -14,10 +14,10 @@ const __dirname = path.dirname(fileURLToPath(import.meta.url));
 const repoRoot = path.resolve(__dirname, "..");
 const fixturesDir = path.join(__dirname, "fixtures");
 
-const manifestSchema = readJsonFile(
+const { data: manifestSchema } = readJsonFile(
   path.join(repoRoot, "docs", "solution-manifest.schema.json")
 );
-const briefSchema = readJsonFile(
+const { data: briefSchema } = readJsonFile(
   path.join(repoRoot, "docs", "publishing", "blog-brief.schema.json")
 );
 

@@ -7,7 +7,7 @@
 
 import path from "node:path";
 import fs from "node:fs";
-import { fileURLToPath } from "node:url";
+import { fileURLToPath, pathToFileURL } from "node:url";
 import {
   readYamlFile,
   readJsonFile,
@@ -47,10 +47,15 @@ export function runValidation(repoRoot) {
   if (manifestParseError) {
     errors.push(manifestParseError);
   } else {
-    const manifestSchema = readJsonFile(manifestSchemaPath);
-    errors.push(
-      ...validateManifestDocument(manifestData, manifestSchema, repoRoot)
-    );
+    const { data: manifestSchema, error: manifestSchemaError } =
+      readJsonFile(manifestSchemaPath);
+    if (manifestSchemaError) {
+      errors.push(manifestSchemaError);
+    } else {
+      errors.push(
+        ...validateManifestDocument(manifestData, manifestSchema, repoRoot)
+      );
+    }
   }
 
   const briefPath = path.join(
@@ -69,10 +74,15 @@ export function runValidation(repoRoot) {
   if (briefParseError) {
     errors.push(briefParseError);
   } else {
-    const briefSchema = readJsonFile(briefSchemaPath);
-    errors.push(
-      ...validateBlogBriefDocument(briefData, briefSchema, repoRoot)
-    );
+    const { data: briefSchema, error: briefSchemaError } =
+      readJsonFile(briefSchemaPath);
+    if (briefSchemaError) {
+      errors.push(briefSchemaError);
+    } else {
+      errors.push(
+        ...validateBlogBriefDocument(briefData, briefSchema, repoRoot)
+      );
+    }
   }
 
   const agentsDir = path.join(repoRoot, ".github", "agents");
@@ -112,7 +122,7 @@ function main() {
 }
 
 const isMainModule =
-  process.argv[1] && import.meta.url === `file://${process.argv[1]}`;
+  process.argv[1] && import.meta.url === pathToFileURL(process.argv[1]).href;
 if (isMainModule) {
   main();
 }

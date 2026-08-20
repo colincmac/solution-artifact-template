@@ -28,8 +28,17 @@ export function readYamlFile(filePath) {
 }
 
 export function readJsonFile(filePath) {
-  const raw = fs.readFileSync(filePath, "utf8");
-  return JSON.parse(raw);
+  let raw;
+  try {
+    raw = fs.readFileSync(filePath, "utf8");
+  } catch (err) {
+    return { data: null, error: `Could not read ${filePath}: ${err.message}` };
+  }
+  try {
+    return { data: JSON.parse(raw), error: null };
+  } catch (err) {
+    return { data: null, error: `Could not parse JSON in ${filePath}: ${err.message}` };
+  }
 }
 
 function newAjv() {
