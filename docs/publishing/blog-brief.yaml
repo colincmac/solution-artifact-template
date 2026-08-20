@@ -1,0 +1,81 @@
+# Publication brief
+#
+# Conservative, human-reviewed synthesis metadata for an external technical
+# blog. This file is read, at authoring time only, by the blog's own
+# authoring tooling to create a SEPARATE draft in the blog's system. It is
+# never a runtime or build dependency of the published site.
+#
+# Placeholder values below are intentionally obvious ("REPLACE_ME") so this
+# file cannot be mistaken for reviewed, publishable content. Do not fill in
+# a candidate until you have real, reviewed source material for it -- an
+# absent or REPLACE_ME candidate is safer than a fabricated one.
+#
+# Validate with `npm test` after editing.
+
+schemaVersion: "1.0.0"
+
+solution:
+  # Must match docs/solution-manifest.yaml solution.id.
+  id: "REPLACE_ME-solution-id"
+
+# Candidate content for each supported blog format. Every candidate is a
+# PROPOSAL for the blog's authoring tooling to consider, not a publish
+# action, and requires human review before it is considered ready (see
+# reviewStatus below).
+candidates:
+  architecturalDecision:
+    # One of: not_proposed, draft, ready_for_review, reviewed.
+    reviewStatus: not_proposed
+    audience: "REPLACE_ME: who would benefit from reading this (role, context)"
+    takeaway: "REPLACE_ME: the single decision-focused takeaway"
+    sourceArtifacts: []
+    # ADR IDs (e.g. "0001") this candidate is built on, and their status at
+    # time of writing, so a superseded decision is never presented as final.
+    canonicalAdrs: []
+    evidence: []
+    evidenceGaps: []
+    detailsToGeneralize: []
+    excludedMaterial: []
+
+  largeScaleLessons:
+    reviewStatus: not_proposed
+    audience: "REPLACE_ME"
+    takeaway: "REPLACE_ME: the lesson, stated plainly"
+    sourceArtifacts: []
+    canonicalAdrs: []
+    operations: []
+    evidence: []
+    evidenceGaps: []
+    detailsToGeneralize: []
+    excludedMaterial: []
+
+  referenceArchitecture:
+    reviewStatus: not_proposed
+    audience: "REPLACE_ME"
+    takeaway: "REPLACE_ME: the reusable pattern being illustrated"
+    sourceArtifacts: []
+    canonicalAdrs: []
+    evidence: []
+    evidenceGaps: []
+    detailsToGeneralize: []
+    excludedMaterial: []
+
+  fieldNote:
+    reviewStatus: not_proposed
+    audience: "REPLACE_ME"
+    takeaway: "REPLACE_ME: the narrow observation being shared"
+    sourceArtifacts: []
+    canonicalAdrs: []
+    evidence: []
+    evidenceGaps: []
+    detailsToGeneralize: []
+    excludedMaterial: []
+
+# Material that must never appear in any candidate above, regardless of
+# format. This is a curation aid for human reviewers and authoring tooling,
+# NOT a security or access-control boundary.
+globalExclusions:
+  - "Credentials, tokens, connection strings, and subscription/tenant identifiers"
+  - "Customer names, logos, and other confidential business information"
+  - "Private URLs, internal hostnames, and internal ticket/issue references"
+  - "Unvalidated performance or cost claims not backed by an evidence record"

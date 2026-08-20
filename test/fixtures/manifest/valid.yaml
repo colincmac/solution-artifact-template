@@ -1,0 +1,23 @@
+schemaVersion: "1.0.0"
+templateVersion: "1.0.0"
+solution:
+  id: "example-solution"
+  name: "Example Solution"
+  summary: "An example solution used for validator tests."
+  maturity: prototype
+entryPoints:
+  overview: docs/README.md
+  architectureIndex: docs/architecture/README.md
+  adrIndex: docs/adr/README.md
+  deployment: docs/architecture/README.md#deployment-and-provisioning
+  runbooks: docs/runbooks/README.md
+  observability: docs/architecture/README.md#observability
+  evidence: docs/evidence/README.md
+  publicationBrief: docs/publishing/blog-brief.yaml
+  implementation: null
+  automation: null
+synthesisExclusions:
+  - "Credentials and secrets"
+publicationReview:
+  requiresHumanReview: true
+  notes: "Example note."
