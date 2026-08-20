@@ -60,9 +60,9 @@ remain required regardless of what the brief says.
 2. Clone your new repository.
 3. Replace placeholders:
    - Update the title and description in this `README.md`.
-   - Edit `docs/solution-manifest.yaml`: set `solution.name`, `solution.id`,
-     `solution.maturity`, and every entry point path to match your real
-     documents (or remove optional entry points you do not use).
+   - Edit `docs/solution-manifest.yaml`: set the `repository` and `solution`
+     objects, then update every entry point path to match your real documents
+     (or remove optional entry points you do not use).
    - Rename/author your architecture, ADR, runbook, and evidence documents
      from the templates in `docs/architecture/templates/`,
      `docs/adr/templates/`, `docs/runbooks/templates/`, and
@@ -71,8 +71,8 @@ remain required regardless of what the brief says.
      reviewed content to share with the blog; its placeholder values are
      intentionally obvious (for example `"REPLACE_ME"`) so you cannot
      accidentally publish them unedited.
-4. Run `npm ci` and `npm test` to confirm the manifest and brief still
-   validate after your edits (see [Validation](#validation)).
+4. Run `npm ci && npm test && npm run check-initialized`. The final command
+   deliberately fails while any `REPLACE_ME` value remains.
 
 ## Authoring flow
 
@@ -85,7 +85,7 @@ remain required regardless of what the brief says.
 3. **Maintain architecture, runbooks, and evidence.** Keep
    `docs/architecture/`, `docs/runbooks/`, and `docs/evidence/` current as
    the solution changes. Evidence records distinguish measured results from
-   modeled targets and assumptions; never imply proof you do not have.
+   modeled targets, assumptions, and gaps; never imply proof you do not have.
 4. **Curate a publication brief.** When (and only when) you want to propose
    external content, update `docs/publishing/blog-brief.yaml` with reviewed,
    sanitized pointers into the artifacts above.
@@ -120,11 +120,14 @@ This template ships a small, dependency-light Node.js validator (see
 - parse as YAML,
 - validate against their JSON Schemas in `docs/*.schema.json`, and
 - reference only existing, repository-relative, non-traversing local paths
-  for required entry points.
+  for entry points and publication provenance,
+- resolve Markdown entry-point fragments, and
+- keep the manifest and brief solution identity and repository aligned.
 
 ```bash
 npm ci
 npm test
+npm run check-initialized
 ```
 
 A GitHub Actions workflow (`.github/workflows/validate.yml`) runs the same
@@ -161,3 +164,6 @@ Marking a repository as a **template repository** is a GitHub repository
 setting (**Settings > General > Template repository**) and cannot be changed
 by a pull request. After this content is merged, a repository owner must
 enable that setting for **Use this template** to appear.
+
+Protection or rulesets for the `main` branch are also owner-managed GitHub
+settings and remain an owner action after merge.

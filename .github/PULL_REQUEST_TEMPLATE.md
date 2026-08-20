@@ -13,9 +13,10 @@ REPLACE_ME: what this PR does and why.
 - [ ] **Operational changes:** Does this change how an operational
       condition is diagnosed or mitigated? If yes, the relevant
       [runbook](../docs/runbooks/README.md) is updated.
-- [ ] **Evidence:** Does this change rely on or produce a measured/modeled
-      result? If yes, an [evidence record](../docs/evidence/README.md) is
-      added or updated, with limitations stated honestly.
+- [ ] **Evidence:** Does this change rely on or produce a claim? If yes, use
+      only `measured`, `modeled`, `assumed`, or `gap` in the
+      [evidence record](../docs/evidence/README.md), with limitations stated
+      honestly.
 - [ ] **Security/privacy:** No credentials, tenant/subscription IDs,
       customer names, private URLs, or sensitive data are introduced.
 - [ ] **Publication metadata:** Does this change require an update to
@@ -26,3 +27,5 @@ REPLACE_ME: what this PR does and why.
 ## Validation
 
 - [ ] `npm ci && npm test` passes locally.
+- [ ] `npm run check-initialized` passes for a repository created from this
+      template (the canonical template intentionally retains `REPLACE_ME`).

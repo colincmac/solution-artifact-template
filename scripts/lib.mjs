@@ -71,7 +71,12 @@ export function checkLocalPathShape(value, label) {
   if (/^[a-zA-Z][a-zA-Z0-9+.-]*:\/\//.test(value) || value.startsWith("//")) {
     return `${label}: must be a repository-relative local path, not a URL ("${value}")`;
   }
-  if (path.isAbsolute(value) || value.startsWith("/")) {
+  if (
+    path.isAbsolute(value) ||
+    value.startsWith("/") ||
+    value.startsWith("\\") ||
+    /^[a-zA-Z]:[\\/]/.test(value)
+  ) {
     return `${label}: must be repository-relative, not absolute ("${value}")`;
   }
   const withoutFragment = value.split("#")[0];
@@ -94,6 +99,35 @@ export function checkLocalPathExists(value, repoRoot, label) {
     return `${label}: entry point path does not exist: "${withoutFragment}"`;
   }
   return null;
+}
+
+function githubHeadingSlug(value) {
+  return value
+    .toLowerCase()
+    .replace(/<[^>]*>/g, "")
+    .replace(/\[([^\]]+)\]\([^)]*\)/g, "$1")
+    .replace(/[`~!@#$%^&*()+={}\[\]|\\:;"'<>,.?/]/g, "")
+    .trim()
+    .replace(/\s+/g, "-");
+}
+
+export function checkMarkdownFragmentExists(value, repoRoot, label) {
+  const [filePath, fragment] = value.split("#");
+  if (!fragment || !filePath.toLowerCase().endsWith(".md")) return null;
+  const headings = fs
+    .readFileSync(path.join(repoRoot, filePath), "utf8")
+    .split(/\r?\n/)
+    .filter((line) => /^#{1,6}\s+/.test(line))
+    .map((line) => githubHeadingSlug(line.replace(/^#{1,6}\s+/, "")));
+  const seen = new Map();
+  const slugs = headings.map((slug) => {
+    const count = seen.get(slug) ?? 0;
+    seen.set(slug, count + 1);
+    return count === 0 ? slug : `${slug}-${count}`;
+  });
+  return slugs.includes(fragment)
+    ? null
+    : `${label}: Markdown fragment does not exist: "#${fragment}"`;
 }
 
 const REQUIRED_MANIFEST_ENTRY_POINTS = [
@@ -133,6 +167,10 @@ export function validateManifestDocument(data, schema, repoRoot) {
     }
     const existsError = checkLocalPathExists(value, repoRoot, label);
     if (existsError) errors.push(existsError);
+    else {
+      const fragmentError = checkMarkdownFragmentExists(value, repoRoot, label);
+      if (fragmentError) errors.push(fragmentError);
+    }
   }
   for (const key of OPTIONAL_MANIFEST_ENTRY_POINTS) {
     const value = entryPoints[key];
@@ -145,15 +183,32 @@ export function validateManifestDocument(data, schema, repoRoot) {
     }
     const existsError = checkLocalPathExists(value, repoRoot, label);
     if (existsError) errors.push(existsError);
+    else {
+      const fragmentError = checkMarkdownFragmentExists(value, repoRoot, label);
+      if (fragmentError) errors.push(fragmentError);
+    }
+  }
+  for (const [index, exclusion] of (data?.synthesisExclusions ?? []).entries()) {
+    const value = exclusion?.path ?? exclusion?.glob;
+    const label = `solution-manifest.yaml synthesisExclusions[${index}]`;
+    const shapeError = checkLocalPathShape(value, label);
+    if (shapeError) errors.push(shapeError);
+    if (exclusion?.glob && /^[*?[{]/.test(exclusion.glob)) {
+      errors.push(`${label}: glob must start with a safe repository-relative prefix`);
+    }
   }
   return errors;
 }
 
-const CANDIDATE_PATH_LIST_FIELDS = [
-  "sourceArtifacts",
-  "operations",
-  "evidence",
-];
+function validateReferencePath(value, repoRoot, label, errors) {
+  const shapeError = checkLocalPathShape(value, label);
+  if (shapeError) {
+    errors.push(shapeError);
+    return;
+  }
+  const existsError = checkLocalPathExists(value, repoRoot, label);
+  if (existsError) errors.push(existsError);
+}
 
 /**
  * Validate a parsed blog-brief document: schema, then well-formed (and,
@@ -164,24 +219,65 @@ export function validateBlogBriefDocument(data, schema, repoRoot) {
   const errors = [];
   errors.push(...validateAgainstSchema(data, schema, "blog-brief.yaml"));
 
-  const candidates = (data && data.candidates) || {};
-  for (const [candidateName, candidate] of Object.entries(candidates)) {
+  const candidates = data?.candidates ?? [];
+  const ids = new Set();
+  for (const [candidateIndex, candidate] of candidates.entries()) {
     if (!candidate || typeof candidate !== "object") continue;
-    for (const field of CANDIDATE_PATH_LIST_FIELDS) {
+    if (ids.has(candidate.id)) {
+      errors.push(`blog-brief.yaml candidates[${candidateIndex}].id: duplicate candidate ID "${candidate.id}"`);
+    }
+    ids.add(candidate.id);
+    for (const field of ["sourceArtifacts", "operations"]) {
       const values = candidate[field];
       if (!Array.isArray(values)) continue;
-      values.forEach((value, index) => {
-        const label = `blog-brief.yaml candidates.${candidateName}.${field}[${index}]`;
-        const shapeError = checkLocalPathShape(value, label);
-        if (shapeError) {
-          errors.push(shapeError);
-          return;
-        }
-        const existsError = checkLocalPathExists(value, repoRoot, label);
-        if (existsError) errors.push(existsError);
+      values.forEach((value, referenceIndex) => {
+        const label = `blog-brief.yaml candidates[${candidateIndex}].${field}[${referenceIndex}].path`;
+        validateReferencePath(value?.path, repoRoot, label, errors);
       });
     }
+    for (const [adrIndex, adr] of (candidate.canonicalAdrs ?? []).entries()) {
+      validateReferencePath(adr?.path, repoRoot, `blog-brief.yaml candidates[${candidateIndex}].canonicalAdrs[${adrIndex}].path`, errors);
+    }
+    for (const [evidenceIndex, evidence] of (candidate.evidence ?? []).entries()) {
+      if (evidence?.path) {
+        validateReferencePath(evidence.path, repoRoot, `blog-brief.yaml candidates[${candidateIndex}].evidence[${evidenceIndex}].path`, errors);
+      }
+    }
   }
+  return errors;
+}
+
+export function validateContractDocuments(manifest, brief) {
+  const errors = [];
+  if (!manifest || !brief) return errors;
+  if (manifest.solution?.id !== brief.solution?.id) {
+    errors.push("solution-manifest.yaml and blog-brief.yaml: solution IDs must match");
+  }
+  const { owner, name } = manifest.repository ?? {};
+  if (
+    typeof owner === "string" &&
+    owner &&
+    typeof name === "string" &&
+    name &&
+    `${owner}/${name}` !== brief.solution?.repository
+  ) {
+    errors.push("solution-manifest.yaml and blog-brief.yaml: repository must match manifest owner/name");
+  }
+  return errors;
+}
+
+export function findUnresolvedPlaceholders(data, label) {
+  const errors = [];
+  function visit(value, currentPath) {
+    if (typeof value === "string" && value.includes("REPLACE_ME")) {
+      errors.push(`${label} ${currentPath}: unresolved REPLACE_ME value`);
+    } else if (Array.isArray(value)) {
+      value.forEach((item, index) => visit(item, `${currentPath}[${index}]`));
+    } else if (value && typeof value === "object") {
+      Object.entries(value).forEach(([key, item]) => visit(item, `${currentPath}.${key}`));
+    }
+  }
+  visit(data, "");
   return errors;
 }
 
@@ -215,6 +311,16 @@ export function validateAgentFrontmatter(contents, label) {
   if (!frontmatter.description || typeof frontmatter.description !== "string") {
     errors.push(`${label}: frontmatter must include a non-empty "description"`);
   }
+  if (frontmatter.name !== undefined && typeof frontmatter.name !== "string") {
+    errors.push(`${label}: frontmatter "name" must be a string`);
+  }
+  if (
+    frontmatter.tools !== undefined &&
+    (!Array.isArray(frontmatter.tools) ||
+      frontmatter.tools.some((tool) => typeof tool !== "string" || !tool))
+  ) {
+    errors.push(`${label}: frontmatter "tools" must be an array of non-empty strings`);
+  }
   return errors;
 }
 
@@ -231,6 +337,13 @@ export function validateInstructionsFrontmatter(contents, label) {
   }
   if (!frontmatter.description || typeof frontmatter.description !== "string") {
     errors.push(`${label}: frontmatter must include a non-empty "description"`);
+  }
+  if (
+    Object.keys(frontmatter).some(
+      (key) => !["applyTo", "description"].includes(key)
+    )
+  ) {
+    errors.push(`${label}: frontmatter may contain only "applyTo" and "description"`);
   }
   return errors;
 }

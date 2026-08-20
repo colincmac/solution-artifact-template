@@ -13,6 +13,8 @@ import {
   readJsonFile,
   validateManifestDocument,
   validateBlogBriefDocument,
+  validateContractDocuments,
+  findUnresolvedPlaceholders,
   validateAgentFrontmatter,
   validateInstructionsFrontmatter,
 } from "./lib.mjs";
@@ -20,8 +22,9 @@ import {
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 
 function findRepoRoot() {
-  return process.argv[2]
-    ? path.resolve(process.argv[2])
+  const repoRootArg = process.argv.slice(2).find((arg) => !arg.startsWith("--"));
+  return repoRootArg
+    ? path.resolve(repoRootArg)
     : path.resolve(__dirname, "..");
 }
 
@@ -33,7 +36,7 @@ function listFiles(dir, suffix) {
     .map((name) => path.join(dir, name));
 }
 
-export function runValidation(repoRoot) {
+export function runValidation(repoRoot, { requireInitialized = false } = {}) {
   const errors = [];
 
   const manifestPath = path.join(repoRoot, "docs", "solution-manifest.yaml");
@@ -42,11 +45,14 @@ export function runValidation(repoRoot) {
     "docs",
     "solution-manifest.schema.json"
   );
-  const { data: manifestData, error: manifestParseError } =
+  const { data: parsedManifestData, error: manifestParseError } =
     readYamlFile(manifestPath);
+  let manifestData;
+  let briefData;
   if (manifestParseError) {
     errors.push(manifestParseError);
   } else {
+    manifestData = parsedManifestData;
     const { data: manifestSchema, error: manifestSchemaError } =
       readJsonFile(manifestSchemaPath);
     if (manifestSchemaError) {
@@ -70,10 +76,11 @@ export function runValidation(repoRoot) {
     "publishing",
     "blog-brief.schema.json"
   );
-  const { data: briefData, error: briefParseError } = readYamlFile(briefPath);
+  const { data: parsedBriefData, error: briefParseError } = readYamlFile(briefPath);
   if (briefParseError) {
     errors.push(briefParseError);
   } else {
+    briefData = parsedBriefData;
     const { data: briefSchema, error: briefSchemaError } =
       readJsonFile(briefSchemaPath);
     if (briefSchemaError) {
@@ -83,6 +90,11 @@ export function runValidation(repoRoot) {
         ...validateBlogBriefDocument(briefData, briefSchema, repoRoot)
       );
     }
+  }
+  errors.push(...validateContractDocuments(manifestData, briefData));
+  if (requireInitialized) {
+    errors.push(...findUnresolvedPlaceholders(manifestData, "solution-manifest.yaml"));
+    errors.push(...findUnresolvedPlaceholders(briefData, "blog-brief.yaml"));
   }
 
   const agentsDir = path.join(repoRoot, ".github", "agents");
@@ -109,7 +121,9 @@ export function runValidation(repoRoot) {
 
 function main() {
   const repoRoot = findRepoRoot();
-  const errors = runValidation(repoRoot);
+  const errors = runValidation(repoRoot, {
+    requireInitialized: process.argv.includes("--require-initialized"),
+  });
   if (errors.length > 0) {
     console.error(`Validation failed with ${errors.length} error(s):\n`);
     for (const err of errors) {

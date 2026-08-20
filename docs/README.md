@@ -48,7 +48,7 @@ runbooks.
 ## Evidence
 
 See [`docs/evidence/README.md`](evidence/README.md) for measured results,
-validated drills, and their assumptions and limitations.
+validated drills, modeled results, assumptions, gaps, and limitations.
 
 ## Publishing
 
@@ -59,13 +59,18 @@ ownership boundary that keeps synthesis outside this repository.
 ## Validation
 
 This template ships a Node.js validator that checks
-`docs/solution-manifest.yaml` and `docs/publishing/blog-brief.yaml` against
-their JSON Schemas and confirms every required entry point exists.
+`docs/solution-manifest.yaml` and `docs/publishing/blog-brief.yaml` against their JSON Schemas, confirms local
+provenance paths and Markdown fragments exist, and checks that their solution
+and repository identities agree.
 
 ```bash
 npm ci
 npm test
+npm run check-initialized
 ```
+
+`npm run check-initialized` is for repositories created from this template; it
+fails until every `REPLACE_ME` value in the manifest and brief is replaced.
 
 See the repository root [`README.md`](../README.md) for the full authoring
 flow and template versioning notes.

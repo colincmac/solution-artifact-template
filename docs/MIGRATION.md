@@ -14,7 +14,8 @@ treat this migration as a reason to reorganize a working repository.
 
 1. Copy `docs/solution-manifest.yaml` and
    `docs/solution-manifest.schema.json` into your repository.
-2. Point each `entryPoints` value at your **existing** documents, wherever
+2. Populate `repository` (`owner`, `name`, `visibility`, and `defaultRef`) and
+   point each `entryPoints` value at your **existing** documents, wherever
    they already live. You do not need to move anything yet.
    - If an area has no existing document, create a minimal index (you can
      copy `docs/*/README.md` from this template as a starting shell) and
@@ -24,8 +25,12 @@ treat this migration as a reason to reorganize a working repository.
    then.
 4. Copy `scripts/`, `test/`, `package.json`, and
    `.github/workflows/validate.yml` to get the validator and CI check.
-5. Run `npm ci && npm test` and fix any reported issues (missing entry
-   points, invalid schema versions).
+5. Populate the publication brief's matching `solution` object and use its
+   array of candidates. Each candidate carries provenance objects, ADR
+   metadata (`current-record` or `reconstructed`), and evidence classes
+   (`measured`, `modeled`, `assumed`, or `gap`).
+6. Run `npm ci && npm test && npm run check-initialized` and fix any reported
+   issues (including missing entry points, broken fragments, or placeholders).
 
 ## Step 2: preserve canonical paths
 
