@@ -7,24 +7,48 @@
   "required": ["schemaVersion", "templateVersion", "solution", "review", "candidates", "globalExclusions"],
   "definitions": {
     "reviewStatus": { "enum": ["not_proposed", "draft", "ready_for_review", "reviewed"] },
+    "repositoryRelativePath": {
+      "type": "string",
+      "minLength": 1,
+      "pattern": "^(?!#)(?![A-Za-z][A-Za-z0-9+.-]*:)(?![\\\\/])(?!.*\\\\)(?!.*(?:^|/)\\.\\.(?:/|#|$))[^\\u0000-\\u001F]+$",
+      "description": "A forward-slash, repository-relative path, optionally followed by a Markdown fragment. Existence and fragment resolution are checked by the conformance validator."
+    },
     "localReference": {
       "type": "object",
       "additionalProperties": false,
       "required": ["path"],
-      "properties": { "path": { "type": "string", "minLength": 1 }, "note": { "type": "string", "minLength": 1 } }
+      "properties": { "path": { "$ref": "#/definitions/repositoryRelativePath" }, "note": { "type": "string", "minLength": 1 } }
     },
     "adr": {
       "type": "object",
+      "description": "A current-record points to a contemporaneous ADR and records its reviewed status. A reconstructed decision has only retrospective provenance and therefore has no ADR path or status.",
       "additionalProperties": false,
-      "required": ["id", "path", "statusAsReviewed", "kind"],
+      "required": ["id", "kind"],
       "properties": {
         "id": { "type": "string", "minLength": 1 },
-        "path": { "type": "string", "minLength": 1 },
+        "path": { "$ref": "#/definitions/repositoryRelativePath" },
         "statusAsReviewed": { "enum": ["proposed", "accepted", "superseded", "deprecated"] },
         "kind": { "enum": ["current-record", "reconstructed"] },
         "note": { "type": "string", "minLength": 1 }
       },
-      "allOf": [{ "if": { "properties": { "kind": { "const": "reconstructed" } } }, "then": { "required": ["note"] } }]
+      "allOf": [
+        {
+          "if": { "properties": { "kind": { "const": "current-record" } }, "required": ["kind"] },
+          "then": { "required": ["path", "statusAsReviewed"] }
+        },
+        {
+          "if": { "properties": { "kind": { "const": "reconstructed" } }, "required": ["kind"] },
+          "then": {
+            "required": ["note"],
+            "not": {
+              "anyOf": [
+                { "required": ["path"] },
+                { "required": ["statusAsReviewed"] }
+              ]
+            }
+          }
+        }
+      ]
     },
     "evidence": {
       "type": "object",
@@ -33,7 +57,7 @@
       "properties": {
         "class": { "enum": ["measured", "modeled", "assumed", "gap"] },
         "claim": { "type": "string", "minLength": 1 },
-        "path": { "type": "string", "minLength": 1 },
+        "path": { "$ref": "#/definitions/repositoryRelativePath" },
         "note": { "type": "string", "minLength": 1 }
       }
     },

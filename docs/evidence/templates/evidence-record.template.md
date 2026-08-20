@@ -21,6 +21,8 @@ Pick exactly one, and be honest about it:
   simulation, not directly observed.
 - **Assumption** — a stated belief used as an input elsewhere, not tested
   here.
+- **Gap** — a claim for which the needed measurement, model, or stated
+  assumption has not yet been recorded.
 
 REPLACE_ME: state which one this record is, and why.
 

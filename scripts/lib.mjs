@@ -68,7 +68,10 @@ export function checkLocalPathShape(value, label) {
   if (typeof value !== "string" || value.length === 0) {
     return `${label}: must be a non-empty string`;
   }
-  if (/^[a-zA-Z][a-zA-Z0-9+.-]*:\/\//.test(value) || value.startsWith("//")) {
+  if (value !== value.trim() || /[\u0000-\u001f]/.test(value)) {
+    return `${label}: must not contain leading/trailing whitespace or control characters`;
+  }
+  if (/^[a-zA-Z][a-zA-Z0-9+.-]*:/.test(value) || value.startsWith("//")) {
     return `${label}: must be a repository-relative local path, not a URL ("${value}")`;
   }
   if (
@@ -79,10 +82,21 @@ export function checkLocalPathShape(value, label) {
   ) {
     return `${label}: must be repository-relative, not absolute ("${value}")`;
   }
-  const withoutFragment = value.split("#")[0];
-  const segments = withoutFragment.split(/[\\/]/);
-  if (segments.some((segment) => segment === "..")) {
-    return `${label}: must not use parent-directory traversal ("${value}")`;
+  if (value.includes("\\")) {
+    return `${label}: must use forward slashes so it is cross-platform ("${value}")`;
+  }
+  const firstHash = value.indexOf("#");
+  const withoutFragment = firstHash === -1 ? value : value.slice(0, firstHash);
+  const fragment = firstHash === -1 ? null : value.slice(firstHash + 1);
+  if (!withoutFragment || fragment === "" || fragment?.includes("#")) {
+    return `${label}: must contain a path and at most one non-empty fragment ("${value}")`;
+  }
+  if (/[*?[\]{}]/.test(withoutFragment)) {
+    return `${label}: path must not contain glob metacharacters ("${value}")`;
+  }
+  const segments = withoutFragment.split("/");
+  if (segments.some((segment) => segment === ".." || segment === "." || segment === "")) {
+    return `${label}: must not use empty, current-, or parent-directory traversal segments ("${value}")`;
   }
   return null;
 }
@@ -93,10 +107,25 @@ export function checkLocalPathShape(value, label) {
  * to `repoRoot`. Assumes checkLocalPathShape has already passed.
  */
 export function checkLocalPathExists(value, repoRoot, label) {
-  const withoutFragment = value.split("#")[0];
-  const resolved = path.join(repoRoot, withoutFragment);
+  const withoutFragment = value.split("#", 1)[0];
+  const root = path.resolve(repoRoot);
+  const resolved = path.resolve(root, ...withoutFragment.split("/"));
+  const relative = path.relative(root, resolved);
+  if (relative === ".." || relative.startsWith(`..${path.sep}`) || path.isAbsolute(relative)) {
+    return `${label}: path resolves outside the repository: "${withoutFragment}"`;
+  }
   if (!fs.existsSync(resolved)) {
-    return `${label}: entry point path does not exist: "${withoutFragment}"`;
+    return `${label}: target does not exist: "${withoutFragment}"`;
+  }
+  const realRoot = fs.realpathSync(root);
+  const realTarget = fs.realpathSync(resolved);
+  const realRelative = path.relative(realRoot, realTarget);
+  if (
+    realRelative === ".." ||
+    realRelative.startsWith(`..${path.sep}`) ||
+    path.isAbsolute(realRelative)
+  ) {
+    return `${label}: target resolves outside the repository: "${withoutFragment}"`;
   }
   return null;
 }
@@ -112,10 +141,24 @@ function githubHeadingSlug(value) {
 }
 
 export function checkMarkdownFragmentExists(value, repoRoot, label) {
-  const [filePath, fragment] = value.split("#");
-  if (!fragment || !filePath.toLowerCase().endsWith(".md")) return null;
+  const hashIndex = value.indexOf("#");
+  if (hashIndex === -1) return null;
+  const filePath = value.slice(0, hashIndex);
+  let fragment = value.slice(hashIndex + 1);
+  if (!filePath.toLowerCase().endsWith(".md")) {
+    return `${label}: fragments may only target Markdown files`;
+  }
+  const resolvedFile = path.resolve(repoRoot, ...filePath.split("/"));
+  if (!fs.statSync(resolvedFile).isFile()) {
+    return `${label}: Markdown fragment target must be a file`;
+  }
+  try {
+    fragment = decodeURIComponent(fragment);
+  } catch {
+    return `${label}: Markdown fragment is not valid URI encoding: "#${fragment}"`;
+  }
   const headings = fs
-    .readFileSync(path.join(repoRoot, filePath), "utf8")
+    .readFileSync(resolvedFile, "utf8")
     .split(/\r?\n/)
     .filter((line) => /^#{1,6}\s+/.test(line))
     .map((line) => githubHeadingSlug(line.replace(/^#{1,6}\s+/, "")));
@@ -142,6 +185,71 @@ const REQUIRED_MANIFEST_ENTRY_POINTS = [
 ];
 
 const OPTIONAL_MANIFEST_ENTRY_POINTS = ["implementation", "automation"];
+
+function globToRegExp(glob) {
+  let expression = "^";
+  for (let index = 0; index < glob.length; index += 1) {
+    const character = glob[index];
+    if (character === "*" && glob[index + 1] === "*") {
+      expression += ".*";
+      index += 1;
+    } else if (character === "*") {
+      expression += "[^/]*";
+    } else if (character === "?") {
+      expression += "[^/]";
+    } else {
+      expression += /[.*+?^${}()|[\]\\]/.test(character)
+        ? `\\${character}`
+        : character;
+    }
+  }
+  return new RegExp(`${expression}$`);
+}
+
+function exclusionCoversPath(exclusion, target) {
+  const targetPath = target.split("#", 1)[0];
+  if (typeof exclusion.path === "string" && exclusion.path) {
+    return (
+      targetPath === exclusion.path ||
+      targetPath.startsWith(`${exclusion.path.replace(/\/+$/, "")}/`)
+    );
+  }
+  return typeof exclusion.glob === "string"
+    ? globToRegExp(exclusion.glob).test(targetPath)
+    : false;
+}
+
+function validateExclusionGlob(glob, repoRoot, label) {
+  const errors = [];
+  if (typeof glob !== "string" || !glob) {
+    return [`${label}: glob must be a non-empty string`];
+  }
+  if (/[\\[\]{}!#]/.test(glob)) {
+    errors.push(`${label}: glob may use only forward-slash paths with "*" and "?" wildcards`);
+    return errors;
+  }
+  const wildcardIndex = glob.search(/[*?]/);
+  const literal = wildcardIndex === -1 ? glob : glob.slice(0, wildcardIndex);
+  const prefix = wildcardIndex === -1
+    ? literal
+    : literal.endsWith("/")
+      ? literal.replace(/\/+$/, "")
+      : literal.includes("/")
+        ? literal.slice(0, literal.lastIndexOf("/"))
+        : "";
+  if (!prefix) {
+    errors.push(`${label}: glob must start with a safe repository-relative prefix`);
+    return errors;
+  }
+  const shapeError = checkLocalPathShape(prefix, `${label} prefix`);
+  if (shapeError) {
+    errors.push(shapeError);
+    return errors;
+  }
+  const existsError = checkLocalPathExists(prefix, repoRoot, `${label} prefix`);
+  if (existsError) errors.push(existsError);
+  return errors;
+}
 
 /**
  * Validate a parsed solution-manifest document: schema, then required
@@ -188,14 +296,52 @@ export function validateManifestDocument(data, schema, repoRoot) {
       if (fragmentError) errors.push(fragmentError);
     }
   }
-  for (const [index, exclusion] of (data?.synthesisExclusions ?? []).entries()) {
-    const value = exclusion?.path ?? exclusion?.glob;
+  const exclusions = Array.isArray(data?.synthesisExclusions)
+    ? data.synthesisExclusions
+    : [];
+  const coveredEntryPoints = new Set();
+  for (const [index, exclusion] of exclusions.entries()) {
     const label = `solution-manifest.yaml synthesisExclusions[${index}]`;
-    const shapeError = checkLocalPathShape(value, label);
-    if (shapeError) errors.push(shapeError);
-    if (exclusion?.glob && /^[*?[{]/.test(exclusion.glob)) {
-      errors.push(`${label}: glob must start with a safe repository-relative prefix`);
+    if (typeof exclusion?.path === "string" && exclusion.path) {
+      if (exclusion.path.includes("#")) {
+        errors.push(`${label}.path: exclusions must target a file or directory, not a fragment`);
+        continue;
+      }
+      const shapeError = checkLocalPathShape(exclusion.path, `${label}.path`);
+      if (shapeError) errors.push(shapeError);
+      else {
+        const existsError = checkLocalPathExists(
+          exclusion.path,
+          repoRoot,
+          `${label}.path`
+        );
+        if (existsError) errors.push(existsError);
+      }
+    } else if (typeof exclusion?.glob === "string" && exclusion.glob) {
+      errors.push(...validateExclusionGlob(exclusion.glob, repoRoot, `${label}.glob`));
     }
+    for (const [key, entryPoint] of Object.entries(entryPoints)) {
+      if (
+        typeof entryPoint === "string" &&
+        (typeof exclusion?.path === "string" ||
+          typeof exclusion?.glob === "string")
+      ) {
+        if (exclusionCoversPath(exclusion, entryPoint)) {
+          coveredEntryPoints.add(key);
+        }
+      }
+    }
+  }
+  const canonicalEntryPoints = REQUIRED_MANIFEST_ENTRY_POINTS.filter(
+    (key) => typeof entryPoints[key] === "string"
+  );
+  if (
+    canonicalEntryPoints.length > 0 &&
+    canonicalEntryPoints.every((key) => coveredEntryPoints.has(key))
+  ) {
+    errors.push(
+      "solution-manifest.yaml synthesisExclusions: exclusions cover all canonical entryPoints"
+    );
   }
   return errors;
 }
@@ -208,6 +354,10 @@ function validateReferencePath(value, repoRoot, label, errors) {
   }
   const existsError = checkLocalPathExists(value, repoRoot, label);
   if (existsError) errors.push(existsError);
+  else {
+    const fragmentError = checkMarkdownFragmentExists(value, repoRoot, label);
+    if (fragmentError) errors.push(fragmentError);
+  }
 }
 
 /**
@@ -219,7 +369,7 @@ export function validateBlogBriefDocument(data, schema, repoRoot) {
   const errors = [];
   errors.push(...validateAgainstSchema(data, schema, "blog-brief.yaml"));
 
-  const candidates = data?.candidates ?? [];
+  const candidates = Array.isArray(data?.candidates) ? data.candidates : [];
   const ids = new Set();
   for (const [candidateIndex, candidate] of candidates.entries()) {
     if (!candidate || typeof candidate !== "object") continue;
@@ -235,10 +385,18 @@ export function validateBlogBriefDocument(data, schema, repoRoot) {
         validateReferencePath(value?.path, repoRoot, label, errors);
       });
     }
-    for (const [adrIndex, adr] of (candidate.canonicalAdrs ?? []).entries()) {
-      validateReferencePath(adr?.path, repoRoot, `blog-brief.yaml candidates[${candidateIndex}].canonicalAdrs[${adrIndex}].path`, errors);
+    const canonicalAdrs = Array.isArray(candidate.canonicalAdrs)
+      ? candidate.canonicalAdrs
+      : [];
+    for (const [adrIndex, adr] of canonicalAdrs.entries()) {
+      if (adr?.path !== undefined) {
+        validateReferencePath(adr.path, repoRoot, `blog-brief.yaml candidates[${candidateIndex}].canonicalAdrs[${adrIndex}].path`, errors);
+      }
     }
-    for (const [evidenceIndex, evidence] of (candidate.evidence ?? []).entries()) {
+    const evidenceEntries = Array.isArray(candidate.evidence)
+      ? candidate.evidence
+      : [];
+    for (const [evidenceIndex, evidence] of evidenceEntries.entries()) {
       if (evidence?.path) {
         validateReferencePath(evidence.path, repoRoot, `blog-brief.yaml candidates[${candidateIndex}].evidence[${evidenceIndex}].path`, errors);
       }
@@ -262,6 +420,12 @@ export function validateContractDocuments(manifest, brief) {
     `${owner}/${name}` !== brief.solution?.repository
   ) {
     errors.push("solution-manifest.yaml and blog-brief.yaml: repository must match manifest owner/name");
+  }
+  if (
+    manifest.repository?.visibility !== undefined &&
+    manifest.repository.visibility !== brief.solution?.visibility
+  ) {
+    errors.push("solution-manifest.yaml and blog-brief.yaml: visibility must match");
   }
   return errors;
 }

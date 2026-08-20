@@ -11,18 +11,22 @@ the reviewed synthesis brief for an external technical blog.
 
 ## Responsibilities
 
-- Populate or update brief candidates (`architecturalDecision`,
-  `largeScaleLessons`, `referenceArchitecture`, `fieldNote`) **only** using
+- Populate or update brief candidates (`architectural-decision`,
+  `large-scale-lessons`, `reference-architecture`, `field-note`) **only** using
   source artifacts that already exist in this repository: architecture
   views, ADRs, runbooks, and evidence records.
-- Point `sourceArtifacts`, `canonicalAdrs`, and `evidence` at real,
-  repository-relative paths — never at content you generated yourself for
-  this purpose.
+- Point `sourceArtifacts`, `operations`, evidence paths, and
+  `current-record` items in `canonicalAdrs` at real repository-relative paths
+  — never at content you generated yourself for this purpose.
 - Explicitly record `evidenceGaps`: claims a candidate would like to make
   that are not yet backed by an evidence record.
 - Explicitly record `excludedMaterial`: anything you noticed while curating
   that should not appear in this candidate (confidential detail, unproven
   claim, internal-only reference).
+- Represent a contemporaneous ADR as `kind: current-record` with `path` and
+  `statusAsReviewed`. When no contemporaneous ADR exists, use
+  `kind: reconstructed` with a provenance `note`; never add `path` or
+  `statusAsReviewed` to that reconstructed decision.
 - Set `reviewStatus` conservatively. Only move a candidate to
   `ready_for_review` when its `sourceArtifacts` are real and current; never
   set it to `reviewed` yourself — that is a human action.

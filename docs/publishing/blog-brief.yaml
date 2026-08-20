@@ -16,6 +16,8 @@ candidates:
     audience: "REPLACE_ME: intended readers"
     takeaway: "REPLACE_ME: proposed takeaway"
     sourceArtifacts: []
+    # A current-record requires path and statusAsReviewed. A reconstructed
+    # decision requires a provenance note and must not have either field.
     canonicalAdrs: []
     operations: []
     evidence: []

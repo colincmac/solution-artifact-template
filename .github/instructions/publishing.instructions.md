@@ -13,6 +13,12 @@ description: Guidance for curating the publication brief for the external blog.
   rather than guessing at content.
 - Record `evidenceGaps` and `excludedMaterial` explicitly instead of
   silently omitting them.
+- Use only the canonical candidate fields `sourceArtifacts`, `canonicalAdrs`,
+  `detailsToGeneralize`, and `excludedMaterial`; do not introduce aliases.
+- In `canonicalAdrs`, a `current-record` requires a real `path` and
+  `statusAsReviewed`; a `reconstructed` decision requires a non-empty
+  provenance `note` and must not include either field. Never present a
+  retrospective reconstruction as a contemporaneous ADR.
 - Run `npm test` after editing to confirm the brief still validates against
   `docs/publishing/blog-brief.schema.json` and that referenced paths exist.
 - **Never publish.** This repository only produces the brief; the external

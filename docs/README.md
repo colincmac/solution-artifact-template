@@ -61,16 +61,20 @@ ownership boundary that keeps synthesis outside this repository.
 This template ships a Node.js validator that checks
 `docs/solution-manifest.yaml` and `docs/publishing/blog-brief.yaml` against their JSON Schemas, confirms local
 provenance paths and Markdown fragments exist, and checks that their solution
-and repository identities agree.
+ID, repository owner/name, and source visibility agree.
 
 ```bash
 npm ci
 npm test
-npm run check-initialized
+npm run validate:initialized
 ```
 
-`npm run check-initialized` is for repositories created from this template; it
-fails until every `REPLACE_ME` value in the manifest and brief is replaced.
+`npm test` validates the canonical template while retaining its placeholders.
+`npm run validate:initialized` is for repositories created from this template;
+it fails until every `REPLACE_ME` value in the manifest and brief is replaced.
+Canonical-template maintainers can read-only validate another populated
+repository against these schemas with
+`npm run validate:conformance -- <repository-path>`.
 
 See the repository root [`README.md`](../README.md) for the full authoring
 flow and template versioning notes.

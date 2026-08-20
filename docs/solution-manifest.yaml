@@ -23,9 +23,7 @@ entryPoints:
   publicationBrief: docs/publishing/blog-brief.yaml
   implementation: null
   automation: null
-synthesisExclusions:
-  - glob: "docs/**"
-    reason: "Review every source artifact for confidential and unsupported material before synthesis."
+synthesisExclusions: []
 publicationReview:
   requiresHumanReview: true
   notes: "A publication brief proposes content only; a knowledgeable human must review accuracy and sanitization."

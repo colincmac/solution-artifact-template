@@ -20,9 +20,7 @@ manifest:
     observability: docs/README.md#observability
     evidence: docs/evidence/README.md
     publicationBrief: docs/publishing/blog-brief.yaml
-  synthesisExclusions:
-    - glob: docs/**
-      reason: Review confidential details before synthesis.
+  synthesisExclusions: []
   publicationReview:
     requiresHumanReview: true
     notes: Publication is reviewed by a solution owner.

@@ -20,6 +20,7 @@ import {
 } from "./lib.mjs";
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
+const canonicalRepoRoot = path.resolve(__dirname, "..");
 
 function findRepoRoot() {
   const repoRootArg = process.argv.slice(2).find((arg) => !arg.startsWith("--"));
@@ -36,12 +37,15 @@ function listFiles(dir, suffix) {
     .map((name) => path.join(dir, name));
 }
 
-export function runValidation(repoRoot, { requireInitialized = false } = {}) {
+export function runValidation(
+  repoRoot,
+  { requireInitialized = false, schemaRoot = repoRoot } = {}
+) {
   const errors = [];
 
   const manifestPath = path.join(repoRoot, "docs", "solution-manifest.yaml");
   const manifestSchemaPath = path.join(
-    repoRoot,
+    schemaRoot,
     "docs",
     "solution-manifest.schema.json"
   );
@@ -71,7 +75,7 @@ export function runValidation(repoRoot, { requireInitialized = false } = {}) {
     "blog-brief.yaml"
   );
   const briefSchemaPath = path.join(
-    repoRoot,
+    schemaRoot,
     "docs",
     "publishing",
     "blog-brief.schema.json"
@@ -119,11 +123,34 @@ export function runValidation(repoRoot, { requireInitialized = false } = {}) {
   return errors;
 }
 
+/**
+ * Validate a populated external repository against this checkout's canonical
+ * schemas. The target is read only and placeholders are rejected.
+ */
+export function validateRepositoryConformance(
+  repoRoot,
+  { requireInitialized = true, canonicalRoot = canonicalRepoRoot } = {}
+) {
+  return runValidation(path.resolve(repoRoot), {
+    requireInitialized,
+    schemaRoot: path.resolve(canonicalRoot),
+  });
+}
+
 function main() {
   const repoRoot = findRepoRoot();
-  const errors = runValidation(repoRoot, {
-    requireInitialized: process.argv.includes("--require-initialized"),
-  });
+  const conformance = process.argv.includes("--conformance");
+  const targetArg = process.argv.slice(2).find((arg) => !arg.startsWith("--"));
+  if (conformance && !targetArg) {
+    console.error("Usage: npm run validate:conformance -- <external-repository-path>");
+    process.exitCode = 1;
+    return;
+  }
+  const errors = conformance
+    ? validateRepositoryConformance(repoRoot)
+    : runValidation(repoRoot, {
+        requireInitialized: process.argv.includes("--require-initialized"),
+      });
   if (errors.length > 0) {
     console.error(`Validation failed with ${errors.length} error(s):\n`);
     for (const err of errors) {
@@ -132,7 +159,11 @@ function main() {
     process.exitCode = 1;
     return;
   }
-  console.log("All checks passed: solution-manifest.yaml and blog-brief.yaml are valid.");
+  console.log(
+    conformance
+      ? "Conformance passed against the canonical schemas."
+      : "All checks passed: solution-manifest.yaml and blog-brief.yaml are valid."
+  );
 }
 
 const isMainModule =

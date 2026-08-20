@@ -20,17 +20,21 @@ treat this migration as a reason to reorganize a working repository.
    - If an area has no existing document, create a minimal index (you can
      copy `docs/*/README.md` from this template as a starting shell) and
      point the entry point at it.
-3. Copy `docs/publishing/blog-brief.yaml` and its schema only if/when you
-   intend to curate content for an external blog. It is optional until
-   then.
+3. Copy `docs/publishing/blog-brief.yaml` and its schema. Keep its review and
+   candidates `not_proposed` until you intend to curate content for an
+   external blog; the hand-off remains inert until then.
 4. Copy `scripts/`, `test/`, `package.json`, and
    `.github/workflows/validate.yml` to get the validator and CI check.
 5. Populate the publication brief's matching `solution` object and use its
    array of candidates. Each candidate carries provenance objects, ADR
-   metadata (`current-record` or `reconstructed`), and evidence classes
-   (`measured`, `modeled`, `assumed`, or `gap`).
-6. Run `npm ci && npm test && npm run check-initialized` and fix any reported
+   metadata: `current-record` requires `path` and `statusAsReviewed`;
+   `reconstructed` requires a provenance `note` and prohibits those two
+   fields. Evidence classes are `measured`, `modeled`, `assumed`, or `gap`.
+6. Run `npm ci && npm test && npm run validate:initialized` and fix any reported
    issues (including missing entry points, broken fragments, or placeholders).
+   A canonical-template checkout can validate the populated repository without
+   modifying it using
+   `npm run validate:conformance -- <repository-path>`.
 
 ## Step 2: preserve canonical paths
 
@@ -60,6 +64,12 @@ further, at whatever pace fits your team:
   to an external blog.
 - Add per-path Copilot instructions (`.github/instructions/`) if you use
   GitHub Copilot in this repository.
+
+Repositories already using a reconstructed decision with `path` or
+`statusAsReviewed` must remove those fields and retain a non-empty provenance
+`note`. A real contemporaneous ADR should instead be represented as
+`kind: current-record`. This is a contract correction within schema version
+`1.0.0`; no field aliases are supported.
 
 ## Keeping up with template changes
 

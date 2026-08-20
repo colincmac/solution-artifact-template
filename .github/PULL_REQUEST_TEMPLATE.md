@@ -23,9 +23,12 @@ REPLACE_ME: what this PR does and why.
       [`docs/publishing/blog-brief.yaml`](../docs/publishing/README.md)
       (new content to propose, or content that must now be excluded)? If
       yes, a human reviewer has checked it.
+- [ ] **ADR provenance:** Every publication `current-record` has `path` and
+      `statusAsReviewed`; every `reconstructed` decision has a provenance
+      `note` and neither of those fields.
 
 ## Validation
 
 - [ ] `npm ci && npm test` passes locally.
-- [ ] `npm run check-initialized` passes for a repository created from this
+- [ ] `npm run validate:initialized` passes for a repository created from this
       template (the canonical template intentionally retains `REPLACE_ME`).

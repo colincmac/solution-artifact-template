@@ -9,7 +9,9 @@
   },
   "scripts": {
     "validate": "node scripts/validate.mjs",
-    "check-initialized": "node scripts/validate.mjs --require-initialized",
+    "validate:initialized": "node scripts/validate.mjs --require-initialized",
+    "check-initialized": "npm run validate:initialized",
+    "validate:conformance": "node scripts/validate.mjs --conformance",
     "test": "node --test test/*.test.mjs",
     "pretest": "npm run validate"
   },

@@ -47,14 +47,24 @@ of four supported formats:
 
 Each candidate has a stable `id`, `format`, working title, audience, takeaway,
 local source/operations provenance, ADR objects, and evidence objects. ADRs
-explicitly identify reconstructed decisions rather than presenting them as
-contemporaneous records. Evidence uses only `measured`, `modeled`, `assumed`,
-and `gap`.
+use one of two shapes:
+
+- A `current-record` requires `id`, `kind`, `path`, and
+  `statusAsReviewed` (`proposed`, `accepted`, `superseded`, or `deprecated`).
+- A `reconstructed` decision requires `id`, `kind`, and a non-empty provenance
+  `note`. It must not include `path` or `statusAsReviewed`, because no
+  contemporaneous ADR exists.
+
+Evidence uses only `measured`, `modeled`, `assumed`, and `gap`. Canonical
+candidate field names are `sourceArtifacts`, `canonicalAdrs`,
+`detailsToGeneralize`, and `excludedMaterial`; aliases are not accepted.
 
 ## Review checklist before marking a candidate ready
 
 - [ ] Every source artifact referenced actually exists and is current.
 - [ ] Every claim maps to an ADR, runbook, or evidence record — not memory.
+- [ ] Reconstructed decisions include provenance and do not imply that a
+      contemporaneous ADR exists.
 - [ ] Evidence gaps are stated explicitly, not implied to be resolved.
 - [ ] No credentials, tenant/subscription IDs, customer names, private
       URLs, or unsupported performance claims are present.

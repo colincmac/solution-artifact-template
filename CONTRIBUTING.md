@@ -11,6 +11,9 @@ authoring flow.
   against their schemas, verifies local provenance and Markdown fragments,
   and confirms the manifest and brief agree.
 - Keep documentation changes close to the code they describe.
+- In a repository generated from this template, also run
+  `npm run validate:initialized`; the canonical template itself intentionally
+  retains `REPLACE_ME` placeholders.
 
 ## When do you need an ADR?
 
@@ -41,6 +44,11 @@ candidates as `not_proposed` otherwise; candidates are an array and may share
 a format. Any change to this file needs a
 human reviewer who understands the solution, in addition to normal code
 review — see the PR template checklist.
+
+In `canonicalAdrs`, use `kind: current-record` only for a contemporaneous ADR;
+it requires `path` and `statusAsReviewed`. Use `kind: reconstructed` when no
+such record exists; provide a provenance `note` and do not add `path` or
+`statusAsReviewed`.
 
 ## Style
 

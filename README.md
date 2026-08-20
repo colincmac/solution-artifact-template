@@ -71,7 +71,7 @@ remain required regardless of what the brief says.
      reviewed content to share with the blog; its placeholder values are
      intentionally obvious (for example `"REPLACE_ME"`) so you cannot
      accidentally publish them unedited.
-4. Run `npm ci && npm test && npm run check-initialized`. The final command
+4. Run `npm ci && npm test && npm run validate:initialized`. The final command
    deliberately fails while any `REPLACE_ME` value remains.
 
 ## Authoring flow
@@ -118,17 +118,34 @@ This template ships a small, dependency-light Node.js validator (see
 `docs/solution-manifest.yaml` and `docs/publishing/blog-brief.yaml`:
 
 - parse as YAML,
-- validate against their JSON Schemas in `docs/*.schema.json`, and
+- validate against their canonical JSON Schemas under `docs/`, and
 - reference only existing, repository-relative, non-traversing local paths
   for entry points and publication provenance,
 - resolve Markdown entry-point fragments, and
-- keep the manifest and brief solution identity and repository aligned.
+- keep the manifest and brief solution identity, repository, and visibility
+  aligned.
 
 ```bash
 npm ci
 npm test
-npm run check-initialized
+npm run validate:initialized
 ```
+
+Template maintainers use `npm test`; the canonical starter intentionally
+retains placeholders. Repositories created from the template additionally use
+`npm run validate:initialized` before considering initialization complete.
+From this canonical checkout, validate a populated external repository without
+changing it by running:
+
+```bash
+npm run validate:conformance -- ../path-to-solution-repository
+```
+
+A publication candidate uses only the canonical fields `sourceArtifacts`,
+`canonicalAdrs`, `detailsToGeneralize`, and `excludedMaterial`. Each
+`canonicalAdrs` item is either a `current-record`, which requires `path` and
+`statusAsReviewed`, or `reconstructed`, which requires a provenance `note` and
+must not claim a contemporaneous path or status.
 
 A GitHub Actions workflow (`.github/workflows/validate.yml`) runs the same
 checks on every pull request and on pushes to the default branch.
@@ -165,5 +182,7 @@ setting (**Settings > General > Template repository**) and cannot be changed
 by a pull request. After this content is merged, a repository owner must
 enable that setting for **Use this template** to appear.
 
-Protection or rulesets for the `main` branch are also owner-managed GitHub
-settings and remain an owner action after merge.
+Repository rulesets, branch protection, automatic branch deletion, secret
+scanning, and creation of the `v1.0.0` tag/release are owner-managed actions
+after merge. This repository does not change those settings or create a
+release automatically.
