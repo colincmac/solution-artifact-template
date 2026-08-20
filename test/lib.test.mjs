@@ -43,6 +43,12 @@ test("cross-document solution ID and repository mismatches fail", () => {
   assert.equal(errors.length, 2);
 });
 
+test("incomplete repository metadata does not produce a duplicate mismatch error", () => {
+  const { manifest, brief } = copy();
+  delete manifest.repository.owner;
+  assert.deepEqual(validateContractDocuments(manifest, brief), []);
+});
+
 test("invalid evidence classes, ADR statuses, and unmarked reconstructed ADRs fail", () => {
   const { brief } = copy();
   brief.candidates[0].evidence[0].class = "assumption";

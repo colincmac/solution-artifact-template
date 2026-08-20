@@ -253,8 +253,14 @@ export function validateContractDocuments(manifest, brief) {
   if (manifest.solution?.id !== brief.solution?.id) {
     errors.push("solution-manifest.yaml and blog-brief.yaml: solution IDs must match");
   }
-  const repository = `${manifest.repository?.owner}/${manifest.repository?.name}`;
-  if (repository !== brief.solution?.repository) {
+  const { owner, name } = manifest.repository ?? {};
+  if (
+    typeof owner === "string" &&
+    owner &&
+    typeof name === "string" &&
+    name &&
+    `${owner}/${name}` !== brief.solution?.repository
+  ) {
     errors.push("solution-manifest.yaml and blog-brief.yaml: repository must match manifest owner/name");
   }
   return errors;
